@@ -8,6 +8,8 @@ library(survival)
 
 # One event type, one event per subject -----------------------------------
 
+# Kaplan-Meier curve
+
 head(ovarian)
 
 # futime:	survival or censoring time
@@ -28,7 +30,7 @@ plot(fit1, col=1:2, xscale=365.25, lwd=2, mark.time=TRUE,
 legend(750, .9, c("No residual disease", "Residual disease"),
          col=1:2, lwd=2, bty='n')
 
-# 1 = alive, 2 = death
+# 1 = alive (censored), 2 = death
 head(lung)
 
 fit2 <- survfit(Surv(time, status) ~ sex + ph.ecog, data=lung)
@@ -40,6 +42,82 @@ plot(fit2[1:3], lty=1:3, lwd=2, xscale=365.25, fun='event',
 legend(550, .6, paste("Performance Score", 0:2, sep=' ='),
          lty=1:3, lwd=2, bty='n')
 text(400, .95, "Males", cex=2)
+
+tibble(time     = kk$time, 
+       n.risk   = kk$n.risk, 
+       n.event  = kk$n.event, 
+       n.censor = kk$n.censor, 
+       surv     = kk$surv, 
+       strata   = kk$strata, 
+       lower    = kk$lower, 
+       upper    = kk$upper) %>% 
+  filter(strata == "sex=1, ph.ecog=0") %>% 
+  select(time, surv) %>% 
+  plot(type = "l")
+
+
+# Repeated events ---------------------------------------------------------
+
+# In multi-event data, the cumulative hazard is an estimate of the expected 
+# number of events for a unit that has been observed for the given amount of 
+# time, whereas the survival S estimates the probability that a unit has had 0 
+# repairs.
+#
+# The cumulative hazard is the more natural quantity to plot in such studies; 
+# in reliability analysis it is also known as the mean cumulative function.
+#
+# By default, the survfit routine computes both the survival and the Nelson cumulative
+# hazard estimate
+
+data(valveSeats, package = "reda")
+head(valveSeats)
+
+valveSeats %>% 
+  group_by(ID) %>% 
+  arrange(Days) %>% 
+  mutate(time1 = lag(Days), .before = Days) %>% 
+  rename(time2 = Days) %>% 
+  ungroup() %>% 
+  mutate(time1 = ifelse(is.na(time1), 0, time1))
+
+vdata <- with(valveSeat, data.frame(id=id, time2=time, status=status))
+first <- !duplicated(vdata$id)
+vdata$time1 <- ifelse(first, 0, c(0, vdata$time[-nrow(vdata)]))
+double <- which(vdata$time1 == vdata$time2)
+vdata$time1[double] <- vdata$time1[double] -.01
+vdata$time2[double-1] <- vdata$time1[double]
+vdata[1:7, c("id", "time1", "time2", "status")]
+
+vdata2 <- valveSeats %>% 
+  rename(id = ID, time2 = Days, status = `No.`) %>% 
+  group_by(id) %>% 
+  arrange(time2) %>% 
+  mutate(time1 = lag(time2), .before = time2) %>% 
+  mutate(time1 = ifelse(is.na(time1), 0, time1))
+
+double <- which(vdata2$time1 == vdata2$time2)
+vdata2$time1[double] <- vdata2$time1[double] -.01
+vdata2$time2[double-1] <- vdata2$time1[double]
+
+vdata <- vdata2
+
+survcheck(Surv(time1, time2, status) ~ 1, id=id, data=vdata)
+
+vfit <- survfit(Surv(time1, time2, status) ~1, data=vdata, id=id)
+summary(vfit)
+plot(vfit, cumhaz=TRUE, xlab="Days", ylab="Cumulative hazard")
+
+plot(vfit, cumhaz=TRUE, xlab="Days", ylab="Cumulative hazard",
+     conf.times = 100*c(1:7))
+
+
+# Competing risks ---------------------------------------------------------
+
+# The curves are computed using the Aalen-Johansen estimator.
+
+
+# Multi-state data --------------------------------------------------------
+
 
 
 # COX MODEL ---------------------------------------------------------------
