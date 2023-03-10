@@ -43,14 +43,14 @@ legend(550, .6, paste("Performance Score", 0:2, sep=' ='),
          lty=1:3, lwd=2, bty='n')
 text(400, .95, "Males", cex=2)
 
-tibble(time     = kk$time, 
-       n.risk   = kk$n.risk, 
-       n.event  = kk$n.event, 
-       n.censor = kk$n.censor, 
-       surv     = kk$surv, 
-       strata   = kk$strata, 
-       lower    = kk$lower, 
-       upper    = kk$upper) %>% 
+tibble(time     = summary(fit2)$time, 
+       n.risk   = summary(fit2)$n.risk, 
+       n.event  = summary(fit2)$n.event, 
+       n.censor = summary(fit2)$n.censor, 
+       surv     = summary(fit2)$surv, 
+       strata   = summary(fit2)$strata, 
+       lower    = summary(fit2)$lower, 
+       upper    = summary(fit2)$upper) %>% 
   filter(strata == "sex=1, ph.ecog=0") %>% 
   select(time, surv) %>% 
   plot(type = "l")
@@ -114,6 +114,41 @@ plot(vfit, cumhaz=TRUE, xlab="Days", ylab="Cumulative hazard",
 # Competing risks ---------------------------------------------------------
 
 # The curves are computed using the Aalen-Johansen estimator.
+
+crdata <- data.frame(time= c(1:8, 6:8),
+                     endpoint=factor(c(1,1,2,0,1,1,3,0,2,3,0),
+                                     labels=c("censor", "a", "b", "c")),
+                     istate=rep("entry", 11), # Initial state
+                     id= LETTERS[1:11])
+crdata
+
+# The first level of the factor is used to code censoring while the remaining 
+# ones are possible outcomes.
+levels(crdata$endpoint)
+
+tfit <- survfit(Surv(time, endpoint) ~ 1, data=crdata, id=id, istate=istate)
+dim(tfit)
+
+tfit
+
+plot(tfit, col=1:4, lty=1:4, lwd=2, ylab="Probability in state")
+
+## Ejemplo
+mgus
+
+event <- with(mgus2, ifelse(pstat==1, 1, 2*death))
+event <- factor(event, 0:2, c("censored", "progression", "death"))
+etime <- with(mgus2, ifelse(pstat==1, ptime, futime))
+crfit <- survfit(Surv(etime, event) ~ sex, mgus2)
+crfit
+
+mgus2_2 <- mgus2 %>% 
+  mutate(event = ifelse(pstat==1, 1, 2*death) %>% 
+           factor(labels = c("censored", "progression", "death")),
+         etime = ifelse(pstat==1, ptime, futime))
+
+crfit_2 <- survfit(Surv(etime, event) ~ sex, mgus2_2)
+crfit_2
 
 
 # Multi-state data --------------------------------------------------------
