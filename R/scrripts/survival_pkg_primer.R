@@ -147,11 +147,60 @@ mgus2_2 <- mgus2 %>%
            factor(labels = c("censored", "progression", "death")),
          etime = ifelse(pstat==1, ptime, futime))
 
+mgus2_2
+
 crfit_2 <- survfit(Surv(etime, event) ~ sex, mgus2_2)
 crfit_2
 
+summary(crfit_2)
+
+plot(crfit, col=1:2, noplot="",
+     lty=c(3,3,2,2,1,1), lwd=2, xscale=12,
+     xlab="Years post diagnosis", ylab="P(state)")
+legend(240, .65, c("Female, death", "Male, death", "malignancy", "(s0)"),
+       lty=c(1,1,2,3), col=c(1,2,1,1), bty='n', lwd=2)
+
+
 
 # Multi-state data --------------------------------------------------------
+
+myeloid[1:5,]
+
+# Overall survival curves
+sfit0 <- survfit(Surv(futime, death) ~ trt, myeloid)
+plot(sfit0, xscale=365.25, xaxs='r', col=1:2, lwd=2,
+       xlab="Years post enrollment", ylab="Survival")
+legend(20, .4, c("Arm A", "Arm B"),
+         col=1:2, lwd=2, bty='n')
+
+# The full multi-state data set can be created with the tmerge routine.
+mdata <- tmerge(myeloid[,1:2], myeloid, id=id, death= event(futime, death),
+                  sct = event(txtime), cr = event(crtime),
+                  relapse = event(rltime))
+temp <- with(mdata, cr + 2*sct + 4*relapse + 8*death)
+table(temp)
+
+# Our check shows that there is one subject who had CR and stem cell transplant on the same
+# day (temp=3). To avoid length 0 intervals, we break the tie so that complete response (CR)
+# happens rst.
+tdata <- myeloid # temporary working copy
+tied <- with(tdata, (!is.na(crtime) & !is.na(txtime) & crtime==txtime))
+tdata$crtime[tied] <- tdata$crtime[tied] -1
+mdata <- tmerge(tdata[,1:2], tdata, id=id, death= event(futime, death),
+                  sct = event(txtime), cr = event(crtime),
+                  relapse = event(rltime),
+                  priorcr = tdc(crtime), priortx = tdc(txtime))
+temp <- with(mdata, cr + 2*sct + 4*relapse + 8*death)
+table(temp)
+
+mdata$event <- factor(temp, c(0,1,2,4,8),
+                      c("none", "CR", "SCT", "relapse", "death"))
+mdata[1:7, c("id", "trt", "tstart", "tstop", "event", "priorcr", "priortx")]
+
+# Subject 1 has a CR on day 44, relapse on day 113, death on day 235 and did not receive a
+# stem cell transplant. The data for the rst three subjects looks good. Check it out a little more
+# thoroughly using survcheck.
+survcheck(Surv(tstart, tstop, event) ~1, mdata, id=id)
 
 
 
