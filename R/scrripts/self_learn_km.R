@@ -26,7 +26,7 @@ leukemia_dataset %>%
 
 surv_object <- Surv(time = leukemia_dataset$t, event = leukemia_dataset$e)  
 
-km_fit <- survfit(surv_object ~ g)
+km_fit <- survfit(surv_object ~ g, data = leukemia_dataset)
 km_fit
 
 km_fit %>% summary()
@@ -34,7 +34,7 @@ km_fit %>% summary()
 plot(km_fit, col = 1:2)
 legend("topright", lty = 1, legend = c("Grupo 1", "Grupo 2"), col = 1:2, bty = "n")
 
-ggsurvplot(km_fit, data = surv_object, surv.median.line = "hv", risk.table = TRUE)
+ggsurvplot(km_fit, data = leukemia_dataset, surv.median.line = "hv", risk.table = TRUE)
 
 ## The log-rank test for 2 groups
 
