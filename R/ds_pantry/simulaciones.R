@@ -1,6 +1,63 @@
 library(tidyverse)
 
 
+# Proceso estocástico Poisson / Exponencial -------------------------------
+
+LAMBDA <- 1/2 # Eventos por u. de t.
+N <- 10000
+
+set.seed(2023)
+
+r_data <- tibble(
+  # Duración media = 1/lambda
+  durations = rexp(N, rate = LAMBDA),
+  event_time = cumsum(durations)
+) %>% 
+  mutate(intervals = cut(event_time, 
+                         seq(0, floor(max(event_time))+1,
+                             by = 1),
+                         right = FALSE))
+
+# Los instantes de los eventos se distribuyen uniformemente
+r_data$event_time %>% summary()
+r_data %>% 
+  ggplot(aes(x = event_time)) +
+  geom_density()
+
+# Los intervalos entre eventos hemos hecho que vengan
+# de una exponencial
+r_data$durations %>% summary()
+r_data %>% 
+  ggplot(aes(x = durations)) +
+  geom_density()
+
+# Así qu el número de eventos por u. de t.
+# debería ser una poisson de parámetro LAMBDA,
+# o sea, media LAMBDA
+n_events <- r_data %>% 
+  group_by(intervals) %>% 
+  summarise(n_events = n()) %>% 
+  full_join(tibble(intervals = levels(r_data$intervals))) %>% 
+  arrange(intervals) %>% 
+  mutate(n_events = ifelse(is.na(n_events), 0, n_events))
+
+n_events$n_events %>% summary()
+n_events %>% 
+  ggplot(aes(x = n_events)) +
+  geom_histogram(bins = 20)
+
+
+# El evento i tiene lugar en un instante con distribución
+# gamma(shape = i, rate = LAMBDA), cuya media es 
+# shape / rate = i/LAMBDA
+plot((1:N)/LAMBDA, r_data$event_time)
+abline(a=0,b=1, col = "red")
+cor((1:N)/LAMBDA, r_data$event_time)
+
+
+# Curva survival de una geométrica ----------------------------------------
+
+
 N <- 100
 p <- 0.1
 
