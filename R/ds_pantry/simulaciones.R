@@ -73,13 +73,15 @@ data_surv <- tibble(tt = 0, d = NA, exposed = N) %>%
               mutate(exposed = N - cumsum(d))) %>% 
   mutate(S = exposed / N) %>% 
   full_join(tibble(tt = 1:N, S_th = 1 - pgeom((1:N)-1, prob = p))) %>% 
+  full_join(tibble(tt = 1:N, S_th_exp = 1 -  pexp((1:N)-1, rate = p*N/N))) %>% 
   arrange(tt) %>% 
   slice(1:50) %>% 
-  drop_na()
+  drop_na(expected)
 
 
 data_surv %>% ggplot(aes(x = tt, y = S)) + geom_point() + geom_step() +
-  geom_step(aes(y = S_th), color = "red")
+  geom_step(aes(y = S_th), color = "red") +
+  geom_step(aes(y = S_th_exp), color = "blue")
 
 
 plot(seq(0, 50, by = 1), 1-pgeom(seq(0, 50, by = 1), prob = 0.1), 
