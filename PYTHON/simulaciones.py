@@ -27,7 +27,7 @@ data_surv = pd.merge(pd.merge(data_surv, data_th, how = "outer", on = 'tt'),
                               .iloc[:50] \
                               .dropna(subset = ['exposed'])
 
-plt.step(data_surv['tt'], data_surv['S'], 'o-', label='Survival');
+plt.step(data_surv['tt'], data_surv['S'], '-', label='Survival');
 plt.step(data_surv['tt'], data_surv['S_th'], '--', label='Theoretical (Geom)');
 plt.step(data_surv['tt'], data_surv['S_th_exp'], '--', label='Theoretical (Exp)');
 plt.xlabel('Time (tt)');
