@@ -76,7 +76,7 @@ data_surv <- tibble(tt = 0, d = NA, exposed = N) %>%
   full_join(tibble(tt = 1:N, S_th_exp = 1 -  pexp((1:N)-1, rate = p*N/N))) %>% 
   arrange(tt) %>% 
   slice(1:50) %>% 
-  drop_na(expected)
+  drop_na(exposed)
 
 
 data_surv %>% ggplot(aes(x = tt, y = S)) + geom_point() + geom_step() +
