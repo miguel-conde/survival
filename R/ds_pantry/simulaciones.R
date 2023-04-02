@@ -92,3 +92,49 @@ plot(seq(0, 15, by = 1),
      -c(NA, diff((1-pgeom(seq(0, 15, by = 1), prob = 0.3)))) / (1-pgeom(seq(0, 15, by = 1), prob = 0.3)), 
      type = "s", xlab = "n", ylab = "S")
 
+# Situación con 2 riesgos -------------------------------------------------
+
+# Curvas de supervivencia
+S_I <- c(1, 1 - pgeom(0:49, .1))
+names(S_I) <- as.character(0:50)
+
+S_C <- c(1, 1 - pgeom(0:49, .5))
+names(S_C) <- as.character(0:50)
+
+# 
+P_I <- -diff(S_I)
+P_C <- -diff(S_C)
+P_No_I_No_C <- 1 - P_I - P_C
+
+calc_S <- function(n) {
+  
+  out <- S_I[as.character(n)] + S_C[as.character(n)]  -1 + 2*sum(P_I[1:n] * P_C[1:n])
+  
+  return(out)
+}
+
+sapply(1:50, calc_S) %>% plot()
+
+cumprod(1-P_I-P_C)
+
+
+
+N <- 100000
+# 0 -> sigo
+# 1 -> cancelo
+# 2 -> impago
+
+sucesos <- sample(3, N, replace = TRUE, prob = c(0.9, 0.03, 0.07)) - 1
+table(sucesos)
+table(sucesos) %>% prop.table()
+
+tiempos <- rgeom(N, .05) + 1
+
+probe <- tibble(d = tiempos, evento = sucesos) %>% 
+  group_by(d, evento) %>% 
+  summarise(n = n(), .groups = "drop") %>% 
+  spread(evento, n) 
+  
+probe
+  
+probe %>% select(-d) %>% sum(na.rm = TRUE)
